@@ -69,6 +69,10 @@
 #define ORIG_HEATER_BED_PIN      8  // BED
 #define ORIG_TEMP_BED_PIN       14  // ANALOG NUMBERING
 
+#define ORIG_LASER_PWR_PIN    -1
+#define ORIG_LASER_TTL_PIN    -1
+
+
 #if NUM_SERVOS > 0
   #define SERVO0_PIN            11
   #if NUM_SERVOS > 1
