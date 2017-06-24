@@ -127,6 +127,22 @@
 //  #undef DEFAULT_TRAVEL_ACCELERATION
 //  #define DEFAULT_TRAVEL_ACCELERATION   20000
 //#endif
+//#ifdef X_MAX_POS
+//  #undef X_MAX_POS
+//  #define X_MAX_POS   300
+//#endif
+//#ifdef X_MIN_POS
+//  #undef X_MIN_POS
+//  #define X_MIN_POS   0
+//#endif
+//#ifdef Y_MAX_POS
+//  #undef Y_MAX_POS
+//  #define Y_MAX_POS   200
+//#endif
+//#ifdef Y_MIN_POS
+//  #undef Y_MIN_POS
+//  #define Y_MIN_POS   0
+//#endif
 
 
 
@@ -154,6 +170,24 @@
   #undef DEFAULT_TRAVEL_ACCELERATION
   #define DEFAULT_TRAVEL_ACCELERATION   1000
 #endif
+#ifdef X_MAX_POS
+  #undef X_MAX_POS
+  #define X_MAX_POS   210
+#endif
+#ifdef X_MIN_POS
+  #undef X_MIN_POS
+  #define X_MIN_POS   0
+#endif
+#ifdef Y_MAX_POS
+  #undef Y_MAX_POS
+  #define Y_MAX_POS   160
+#endif
+#ifdef Y_MIN_POS
+  #undef Y_MIN_POS
+  #define Y_MIN_POS   0
+#endif
+
+
 
 // Uncomment these options for the All Things RC A3 laser Engraver, and other similar models
 //#ifdef CUSTOM_MACHINE_NAME
@@ -179,6 +213,22 @@
 //  #undef DEFAULT_TRAVEL_ACCELERATION
 //  #define DEFAULT_TRAVEL_ACCELERATION   15000
 //#endif
+//#ifdef X_MAX_POS
+//  #undef X_MAX_POS
+//  #define X_MAX_POS   350
+//#endif
+//#ifdef X_MIN_POS
+//  #undef X_MIN_POS
+//  #define X_MIN_POS   0
+//#endif
+//#ifdef Y_MAX_POS
+//  #undef Y_MAX_POS
+//  #define Y_MAX_POS   500
+//#endif
+//#ifdef Y_MIN_POS
+//  #undef Y_MIN_POS
+//  #define Y_MIN_POS   0
+//#endif
 
 // Uncomment these options for the All Things RC Pocket laser Engraver, and other similar models
 //#ifdef CUSTOM_MACHINE_NAME
@@ -203,6 +253,22 @@
 //#ifdef DEFAULT_TRAVEL_ACCELERATION
 //  #undef DEFAULT_TRAVEL_ACCELERATION
 //  #define DEFAULT_TRAVEL_ACCELERATION   200
+//#endif
+//#ifdef X_MAX_POS
+//  #undef X_MAX_POS
+//  #define X_MAX_POS   37
+//#endif
+//#ifdef X_MIN_POS
+//  #undef X_MIN_POS
+//  #define X_MIN_POS   0
+//#endif
+//#ifdef Y_MAX_POS
+//  #undef Y_MAX_POS
+//  #define Y_MAX_POS   37
+//#endif
+//#ifdef Y_MIN_POS
+//  #undef Y_MIN_POS
+//  #define Y_MIN_POS   0
 //#endif
 
 
