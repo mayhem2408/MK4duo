@@ -38,6 +38,11 @@
   #endif
 #endif
 
+#if HAS_Z_SERVO_PROBE
+  #define DEPLOY_Z_SERVO() MOVE_SERVO(Z_ENDSTOP_SERVO_NR, probe.z_servo_angle[0])
+  #define STOW_Z_SERVO()   MOVE_SERVO(Z_ENDSTOP_SERVO_NR, probe.z_servo_angle[1])
+#endif
+
 class Probe {
 
   public: /** Constructor */
@@ -48,6 +53,10 @@ class Probe {
 
     static float  z_offset;
     static bool   enabled;
+
+    #if HAS_Z_SERVO_PROBE
+      static const int z_servo_angle[2];
+    #endif
 
   public: /** Public Function */
 
@@ -73,12 +82,30 @@ class Probe {
      *   - Raise to the BETWEEN height
      * - Return the probed Z position
      */
-    static float check_pt(const float &x, const float &y, const bool stow=true, const int verbose_level=1);
+    static float check_pt(const float &lx, const float &ly, const bool stow=true, const int verbose_level=1, const bool printable=true);
+
+    /**
+     * Do a single Z probe
+     * Usage:
+     *    G30 <X#> <Y#> <S#> <Z#> <P#>
+     *      X = Probe X position (default=current probe position)
+     *      Y = Probe Y position (default=current probe position)
+     *      S = <bool> Stows the probe if 1 (default=1)
+     *      Z = <bool> with a non-zero value will apply the result to current delta_height (ONLY DELTA)
+     *      P = <bool> with a non-zero value will apply the result to current probe.z_offset (ONLY DELTA)
+     */
+    static void single_probe();
+
+    #if QUIET_PROBING
+      static void probing_pause(const bool p);
+    #endif
 
     #if ENABLED(BLTOUCH)
       static void bltouch_command(int angle);
       static void set_bltouch_deployed(const bool deploy);
     #endif
+
+    static void refresh_zprobe_zoffset();
 
   private: /** Private Parameters */
 
@@ -90,4 +117,4 @@ class Probe {
 
 extern Probe probe;
 
-#endif /* _BEDLEVEL_H_ */
+#endif /* _PROBE_H_ */

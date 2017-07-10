@@ -41,8 +41,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef STEPPER_INDIRECTION_H
-#define STEPPER_INDIRECTION_H
+#ifndef _STEPPER_INDIRECTION_H_
+#define _STEPPER_INDIRECTION_H_
 
 // TMC26X drivers have STEP/DIR on normal pins, but ENABLE via SPI
 #if ENABLED(HAVE_TMCDRIVER)
@@ -571,23 +571,23 @@
   #endif
 #endif // DRIVER_EXTRUDERS
 
-#if HAS(X2_ENABLE)
+#if HAS_X2_ENABLE
   #define  enable_X() do{ X_ENABLE_WRITE( X_ENABLE_ON); X2_ENABLE_WRITE( X_ENABLE_ON); }while(0)
-  #define disable_X() do{ X_ENABLE_WRITE(!X_ENABLE_ON); X2_ENABLE_WRITE(!X_ENABLE_ON); Mechanics.axis_known_position[X_AXIS] = false; }while(0)
-#elif HAS(X_ENABLE)
+  #define disable_X() do{ X_ENABLE_WRITE(!X_ENABLE_ON); X2_ENABLE_WRITE(!X_ENABLE_ON); mechanics.axis_known_position[X_AXIS] = false; }while(0)
+#elif HAS_X_ENABLE
   #define  enable_X() X_ENABLE_WRITE( X_ENABLE_ON)
-  #define disable_X() do{ X_ENABLE_WRITE(!X_ENABLE_ON); Mechanics.axis_known_position[X_AXIS] = false; }while(0)
+  #define disable_X() do{ X_ENABLE_WRITE(!X_ENABLE_ON); mechanics.axis_known_position[X_AXIS] = false; }while(0)
 #else
   #define  enable_X() NOOP
   #define disable_X() NOOP
 #endif
 
-#if HAS(Y2_ENABLE)
+#if HAS_Y2_ENABLE
   #define  enable_Y() do{ Y_ENABLE_WRITE( Y_ENABLE_ON); Y2_ENABLE_WRITE(Y_ENABLE_ON); }while(0)
-  #define disable_Y() do{ Y_ENABLE_WRITE(!Y_ENABLE_ON); Y2_ENABLE_WRITE(!Y_ENABLE_ON); Mechanics.axis_known_position[Y_AXIS] = false; }while(0)
-#elif HAS(Y_ENABLE)
+  #define disable_Y() do{ Y_ENABLE_WRITE(!Y_ENABLE_ON); Y2_ENABLE_WRITE(!Y_ENABLE_ON); mechanics.axis_known_position[Y_AXIS] = false; }while(0)
+#elif HAS_Y_ENABLE
   #define  enable_Y() Y_ENABLE_WRITE( Y_ENABLE_ON)
-  #define disable_Y() do{ Y_ENABLE_WRITE(!Y_ENABLE_ON); Mechanics.axis_known_position[Y_AXIS] = false; }while(0)
+  #define disable_Y() do{ Y_ENABLE_WRITE(!Y_ENABLE_ON); mechanics.axis_known_position[Y_AXIS] = false; }while(0)
 #else
   #define  enable_Y() NOOP
   #define disable_Y() NOOP
@@ -595,16 +595,16 @@
 
 #if HAS(Z4_ENABLE)
   #define  enable_Z() do{ Z_ENABLE_WRITE( Z_ENABLE_ON); Z2_ENABLE_WRITE(Z_ENABLE_ON);   Z3_ENABLE_WRITE(Z_ENABLE_ON);   Z4_ENABLE_WRITE(Z_ENABLE_ON);}while(0)
-  #define disable_Z() do{ Z_ENABLE_WRITE(!Z_ENABLE_ON); Z2_ENABLE_WRITE(!Z_ENABLE_ON);  Z3_ENABLE_WRITE(!Z_ENABLE_ON);  Z4_ENABLE_WRITE(!Z_ENABLE_ON); Mechanics.axis_known_position[Z_AXIS] = false; }while(0)
+  #define disable_Z() do{ Z_ENABLE_WRITE(!Z_ENABLE_ON); Z2_ENABLE_WRITE(!Z_ENABLE_ON);  Z3_ENABLE_WRITE(!Z_ENABLE_ON);  Z4_ENABLE_WRITE(!Z_ENABLE_ON); mechanics.axis_known_position[Z_AXIS] = false; }while(0)
 #elif HAS(Z3_ENABLE)
   #define  enable_Z() do{ Z_ENABLE_WRITE( Z_ENABLE_ON); Z2_ENABLE_WRITE(Z_ENABLE_ON);   Z3_ENABLE_WRITE(Z_ENABLE_ON); }while(0)
-  #define disable_Z() do{ Z_ENABLE_WRITE(!Z_ENABLE_ON); Z2_ENABLE_WRITE(!Z_ENABLE_ON);  Z3_ENABLE_WRITE(!Z_ENABLE_ON); Mechanics.axis_known_position[Z_AXIS] = false; }while(0)
-#elif HAS(Z2_ENABLE)
+  #define disable_Z() do{ Z_ENABLE_WRITE(!Z_ENABLE_ON); Z2_ENABLE_WRITE(!Z_ENABLE_ON);  Z3_ENABLE_WRITE(!Z_ENABLE_ON); mechanics.axis_known_position[Z_AXIS] = false; }while(0)
+#elif HAS_Z2_ENABLE
   #define  enable_Z() do{ Z_ENABLE_WRITE( Z_ENABLE_ON); Z2_ENABLE_WRITE(Z_ENABLE_ON); }while(0)
-  #define disable_Z() do{ Z_ENABLE_WRITE(!Z_ENABLE_ON); Z2_ENABLE_WRITE(!Z_ENABLE_ON); Mechanics.axis_known_position[Z_AXIS] = false; }while(0)
-#elif HAS(Z_ENABLE)
+  #define disable_Z() do{ Z_ENABLE_WRITE(!Z_ENABLE_ON); Z2_ENABLE_WRITE(!Z_ENABLE_ON); mechanics.axis_known_position[Z_AXIS] = false; }while(0)
+#elif HAS_Z_ENABLE
   #define  enable_Z() Z_ENABLE_WRITE( Z_ENABLE_ON)
-  #define disable_Z() do{ Z_ENABLE_WRITE(!Z_ENABLE_ON); Mechanics.axis_known_position[Z_AXIS] = false; }while(0)
+  #define disable_Z() do{ Z_ENABLE_WRITE(!Z_ENABLE_ON); mechanics.axis_known_position[Z_AXIS] = false; }while(0)
 #else
   #define  enable_Z() NOOP
   #define disable_Z() NOOP
@@ -692,4 +692,4 @@
 
 #endif
 
-#endif // STEPPER_INDIRECTION_H
+#endif /* _STEPPER_INDIRECTION_H_ */

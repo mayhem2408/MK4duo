@@ -12,13 +12,14 @@
 #endif
 #if ENABLED(AT90USBxx_TEENSYPP_ASSIGNMENTS)  // use Teensyduino Teensy++2.0 pin assignments instead of Marlin traditional.
   #error These Teensylu/Printrboard assignments depend on traditional Marlin assignments, not AT90USBxx_TEENSYPP_ASSIGNMENTS in fastio.h
-#endif//@@@
+#endif
+//@@@
 
 #define KNOWN_BOARD 1
 
 //###BOARD_NAME
-#ifndef BOARD_NAME
-	#define BOARD_NAME "Teensylu 0.7"
+#if DISABLED(BOARD_NAME)
+  #define BOARD_NAME "Teensylu"
 #endif
 //@@@
 
@@ -159,16 +160,16 @@
 
 //###SERVOS
 #if NUM_SERVOS > 0
-	#define SERVO0_PIN -1
-	#if NUM_SERVOS > 1
-		#define SERVO1_PIN -1
-		#if NUM_SERVOS > 2
-			#define SERVO2_PIN -1
-			#if NUM_SERVOS > 3
-				#define SERVO3_PIN -1
-			#endif
-		#endif
-	#endif
+  #define SERVO0_PIN -1
+  #if NUM_SERVOS > 1
+    #define SERVO1_PIN -1
+    #if NUM_SERVOS > 2
+      #define SERVO2_PIN -1
+      #if NUM_SERVOS > 3
+        #define SERVO3_PIN -1
+      #endif
+    #endif
+  #endif
 #endif
 //@@@
 

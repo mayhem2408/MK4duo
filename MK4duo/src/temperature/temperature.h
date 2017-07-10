@@ -29,8 +29,6 @@
 
 #include "thermistortables.h"
 
-#define HOTEND_LOOP() for (int8_t h = 0; h < HOTENDS; h++)
-
 #if HOTENDS <= 1
   #define HOTEND_INDEX  0
   #define EXTRUDER_IDX  0
@@ -43,34 +41,30 @@ class Temperature {
 
   public:
 
-    #if ENABLED(FILAMENT_SENSOR)
-      static int      current_raw_filwidth;  // Holds measured filament diameter - one extruder only
-    #endif
-    
     #if HAS_TEMP_HOTEND
       static float      current_temperature[HOTENDS];
-      static int        current_temperature_raw[HOTENDS],
+      static int16_t    current_temperature_raw[HOTENDS],
                         target_temperature[HOTENDS];
       static uint8_t    soft_pwm[HOTENDS];
     #endif
     
     #if HAS_TEMP_BED
       static float    current_temperature_bed;
-      static int      current_temperature_bed_raw,
+      static int16_t  current_temperature_bed_raw,
                       target_temperature_bed;
       static uint8_t  soft_pwm_bed;
     #endif
 
     #if HAS_TEMP_CHAMBER
       static float    current_temperature_chamber;
-      static int      target_temperature_chamber,
+      static int16_t  target_temperature_chamber,
                       current_temperature_chamber_raw;
       static uint8_t  soft_pwm_chamber;
     #endif
 
     #if HAS_TEMP_COOLER
       static float    current_temperature_cooler;
-      static int      target_temperature_cooler,
+      static int16_t  target_temperature_cooler,
                       current_temperature_cooler_raw;
       static uint8_t  soft_pwm_cooler;
     #endif
@@ -80,11 +74,11 @@ class Temperature {
                       highest_temperature_mcu,
                       lowest_temperature_mcu,
                       alarm_temperature_mcu;
-      static int      current_temperature_mcu_raw;
+      static int16_t  current_temperature_mcu_raw;
     #endif
 
     #if ENABLED(ADC_KEYPAD)
-      static int      current_ADCKey_raw;
+      static int16_t  current_ADCKey_raw;
     #endif
 
     #if ENABLED(TEMP_SENSOR_1_AS_REDUNDANT)
@@ -145,6 +139,11 @@ class Temperature {
       }
     #else
       static bool tooColdToExtrude(uint8_t h) { UNUSED(h); return false; }
+    #endif
+
+    #if ENABLED(AUTO_REPORT_TEMPERATURES) && (HAS_TEMP_HOTEND || HAS_TEMP_BED)
+      static uint8_t auto_report_temp_interval;
+      static millis_t next_temp_report_ms;
     #endif
 
   private:
@@ -249,14 +248,19 @@ class Temperature {
     #endif
 
     #if ENABLED(FILAMENT_SENSOR)
-      static int16_t meas_shift_index;  // Index of a delayed sample in buffer
+      static int8_t   meas_shift_index;     // Index of a delayed sample in buffer
+      static uint16_t current_raw_filwidth; // Measured filament diameter - one extruder only
     #endif
 
     #if HAS_AUTO_FAN
       static millis_t next_auto_fan_check_ms;
     #endif
 
-    #if ENABLED(ADVANCED_PAUSE_FEATURE)
+    #if ENABLED(PROBING_HEATERS_OFF)
+      static bool paused;
+    #endif
+
+    #if HEATER_IDLE_HANDLER
       static millis_t heater_idle_timeout_ms[HOTENDS];
       static bool heater_idle_timeout_exceeded[HOTENDS];
       #if HAS_TEMP_BED
@@ -574,7 +578,7 @@ class Temperature {
     /**
      * Perform auto-tuning for hotend, bed, chamber or cooler in response to M303
      */
-    #if HAS(PID_HEATING) || HAS(PID_COOLING)
+    #if HAS_PID_HEATING || HAS_PID_COOLING
       static void PID_autotune(const float temp, const int temp_controller, int ncycles, bool storeValues=false);
     #endif
 
@@ -586,7 +590,7 @@ class Temperature {
     #if ENABLED(BABYSTEPPING)
 
       static void babystep_axis(const AxisEnum axis, const int distance) {
-        if (Mechanics.axis_known_position[axis]) {
+        if (mechanics.axis_known_position[axis]) {
           #if IS_CORE
             #if ENABLED(BABYSTEP_XY)
               switch (axis) {
@@ -617,7 +621,12 @@ class Temperature {
 
     #endif // BABYSTEPPING
 
-    #if ENABLED(ADVANCED_PAUSE_FEATURE)
+    #if ENABLED(PROBING_HEATERS_OFF)
+      static void pause(const bool p);
+      static bool is_paused() { return paused; }
+    #endif
+
+    #if HEATER_IDLE_HANDLER
       static void start_heater_idle_timer(uint8_t h, millis_t timeout_ms) {
         #if HOTENDS == 1
           UNUSED(h);
@@ -662,6 +671,26 @@ class Temperature {
           return bed_idle_timeout_exceeded;
         }
       #endif
+    #endif
+
+    #if ENABLED(AUTO_REPORT_TEMPERATURES) && (HAS_TEMP_HOTEND || HAS_TEMP_BED)
+      static void auto_report_temperatures();
+    #endif
+
+    #if HAS_TEMP_HOTEND || HAS_TEMP_BED
+      static void print_heaterstates();
+    #endif
+
+    #if HAS_TEMP_CHAMBER
+      static void print_chamberstate();
+    #endif
+
+    #if HAS_TEMP_COOLER
+      static void print_coolerstate();
+    #endif
+
+    #if ENABLED(ARDUINO_ARCH_SAM)&& !MB(RADDS)
+      static void print_MCUstate();
     #endif
 
   private:
@@ -724,6 +753,16 @@ class Temperature {
       int current_raw_powconsumption;
       static unsigned long raw_powconsumption_value;
     #endif
+
+    #if HAS_TEMP_HOTEND || HAS_TEMP_BED
+      static void print_heater_state(const float &c, const int16_t &t,
+        #if ENABLED(SHOW_TEMP_ADC_VALUES)
+          const int16_t r,
+        #endif
+        const int8_t e=-2
+      );
+    #endif
+
 };
 
 extern Temperature thermalManager;

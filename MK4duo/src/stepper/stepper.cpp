@@ -46,6 +46,7 @@
  */
 
 #include "../../base.h"
+#include "stepper.h"
 
 #if ENABLED(ARDUINO_ARCH_AVR)
   #include "speed_lookuptable.h"
@@ -265,6 +266,68 @@ volatile long Stepper::endstops_trigsteps[XYZ];
   #define E_APPLY_STEP(v,Q) E_STEP_WRITE(v)
 #endif
 
+
+/**
+ * Encoder Extruder definition
+ */
+#if HAS_EXT_ENCODER
+  #define _TEST_EXTRUDER_ENC(x,pin) { \
+    const uint8_t sig = READ(pin); \
+    encStepsSinceLastSignal[x] += encLastDir[x]; \
+    if (encLastSignal[x] != sig && abs(encStepsSinceLastSignal[x] - encLastChangeAt[x]) > ENC_MIN_STEPS) { \
+      if (sig) encStepsSinceLastSignal[x] = 0; \
+      encLastSignal[x] = sig; \
+      encLastChangeAt[x] = encStepsSinceLastSignal[x]; \
+    } \
+    else if (abs(encStepsSinceLastSignal[x]) > encErrorSteps[x]) { \
+      if (encLastDir[x] > 0) \
+        setInterruptEvent(INTERRUPT_EVENT_ENC_DETECT); \
+    } \
+  }
+
+  #define RESET_EXTRUDER_ENC(x,dir) encLastDir[x] = dir ? 1 : -1;
+
+  #define ___TEST_EXTRUDER_ENC(x,y) _TEST_EXTRUDER_ENC(x,y)
+  #define __TEST_EXTRUDER_ENC(x)    ___TEST_EXTRUDER_ENC(x,E ##x## _ENC_PIN)
+  #define TEST_EXTRUDER_ENC(x)      __TEST_EXTRUDER_ENC(x)
+
+  #if HAS_E0_ENC
+    #define TEST_EXTRUDER_ENC0      TEST_EXTRUDER_ENC(0)
+  #else
+    #define TEST_EXTRUDER_ENC0
+  #endif
+  #if HAS_E1_ENC
+    #define TEST_EXTRUDER_ENC1      TEST_EXTRUDER_ENC(1)
+  #else
+    #define TEST_EXTRUDER_ENC1
+  #endif
+  #if HAS_E2_ENC
+    #define TEST_EXTRUDER_ENC2      TEST_EXTRUDER_ENC(2)
+  #else
+    #define TEST_EXTRUDER_ENC2
+  #endif
+  #if HAS_E3_ENC
+    #define TEST_EXTRUDER_ENC3      TEST_EXTRUDER_ENC(3)
+  #else
+    #define TEST_EXTRUDER_ENC3
+  #endif
+  #if HAS_E4_ENC
+    #define TEST_EXTRUDER_ENC4      TEST_EXTRUDER_ENC(4)
+  #else
+    #define TEST_EXTRUDER_ENC4
+  #endif
+  #if HAS_E5_ENC
+    #define TEST_EXTRUDER_ENC5      TEST_EXTRUDER_ENC(5)
+  #else
+    #define TEST_EXTRUDER_ENC5
+  #endif
+
+#endif // HAS_EXT_ENCODER
+
+#define EXTRUDER_FLAG_RETRACTED 1
+#define EXTRUDER_FLAG_WAIT_JAM_STARTCOUNT 2 ///< Waiting for the first signal to start counting
+
+
 /**
  *         __________________________
  *        /|                        |\     _________________         ^
@@ -331,6 +394,35 @@ void Stepper::set_directions() {
       count_direction[E_AXIS] = 1;
     }
   #endif // !ADVANCE && !LIN_ADVANCE
+
+  #if HAS_EXT_ENCODER
+
+    switch(active_extruder) {
+      case 0:
+        RESET_EXTRUDER_ENC(0, count_direction[E_AXIS]); break;
+      #if EXTRUDERS > 1
+        case 1:
+          RESET_EXTRUDER_ENC(1, count_direction[E_AXIS]); break;
+        #if EXTRUDERS > 2
+          case 2:
+            RESET_EXTRUDER_ENC(2, count_direction[E_AXIS]); break;
+          #if EXTRUDERS > 3
+            case 3:
+              RESET_EXTRUDER_ENC(3, count_direction[E_AXIS]); break;
+            #if EXTRUDERS > 4
+              case 4:
+                RESET_EXTRUDER_ENC(4, count_direction[E_AXIS]); break;
+              #if EXTRUDERS > 5
+                case 5:
+                  RESET_EXTRUDER_ENC(5, count_direction[E_AXIS]); break;
+              #endif // EXTRUDERS > 5
+            #endif // EXTRUDERS > 4
+          #endif // EXTRUDERS > 3
+        #endif // EXTRUDERS > 2
+      #endif // EXTRUDERS > 1
+    }
+
+  #endif
 }
 
 #if ENABLED(ENDSTOP_INTERRUPTS_FEATURE)
@@ -430,7 +522,7 @@ void Stepper::isr() {
       if (laser.firing == LASER_ON && laser.dur != 0 && (laser.last_firing + laser.dur < micros())) {
         if (laser.diagnostics)
           SERIAL_EM("Laser firing duration elapsed, in interrupt handler");
-        laser_extinguish();
+        laser.extinguish();
       }
     #endif
   #else
@@ -438,7 +530,7 @@ void Stepper::isr() {
       if (laser.dur != 0 && (laser.last_firing + laser.dur < micros())) {
         if (laser.diagnostics)
           SERIAL_EM("Laser firing duration elapsed, in interrupt handler");
-        laser_extinguish();
+        laser.extinguish();
       }
     #endif
   #endif
@@ -517,13 +609,13 @@ void Stepper::isr() {
   // Continuous firing of the laser during a move happens here, PPM and raster happen further down
   #if ENABLED(LASER)
     if (current_block->laser_mode == CONTINUOUS && current_block->laser_status == LASER_ON)
-      laser_fire(current_block->laser_intensity);
+      laser.fire(current_block->laser_intensity);
 
     #if DISABLED(LASER_PULSE_METHOD)
       if (current_block->laser_status == LASER_OFF) {
         if (laser.diagnostics)
           SERIAL_EM("Laser status set to off, in interrupt handler");
-        laser_extinguish();
+        laser.extinguish();
       }
     #endif
   #endif
@@ -534,35 +626,35 @@ void Stepper::isr() {
 
   // Advance the Bresenham counter; start a pulse if the axis needs a step
   #define PULSE_START(AXIS) \
-    _COUNTER(AXIS) += current_block->steps[_AXIS(AXIS)]; \
+    _COUNTER(AXIS) += current_block->steps[AXIS ##_AXIS]; \
     if (_COUNTER(AXIS) > 0) _APPLY_STEP(AXIS)(!_INVERT_STEP_PIN(AXIS),0);
 
   // Stop an active pulse, reset the Bresenham counter, update the position
   #define PULSE_STOP(AXIS) \
     if (_COUNTER(AXIS) > 0) { \
       _COUNTER(AXIS) -= current_block->step_event_count; \
-      machine_position[_AXIS(AXIS)] += count_direction[_AXIS(AXIS)]; \
+      machine_position[AXIS ##_AXIS] += count_direction[AXIS ##_AXIS]; \
       _APPLY_STEP(AXIS)(_INVERT_STEP_PIN(AXIS),0); \
     }
 
   #define _COUNT_STEPPERS_0 0
   #if HAS_X_STEP
-    #define _COUNT_STEPPERS_1 INCREMENT(_COUNT_STEPPERS_0)
+    #define _COUNT_STEPPERS_1 (_COUNT_STEPPERS_0 + 1)
   #else
     #define _COUNT_STEPPERS_1 _COUNT_STEPPERS_0
   #endif
   #if HAS_Y_STEP
-    #define _COUNT_STEPPERS_2 INCREMENT(_COUNT_STEPPERS_1)
+    #define _COUNT_STEPPERS_2 (_COUNT_STEPPERS_1 + 1)
   #else
     #define _COUNT_STEPPERS_2 _COUNT_STEPPERS_1
   #endif
   #if HAS_Z_STEP
-    #define _COUNT_STEPPERS_3 INCREMENT(_COUNT_STEPPERS_2)
+    #define _COUNT_STEPPERS_3 (_COUNT_STEPPERS_2 + 1)
   #else
     #define _COUNT_STEPPERS_3 _COUNT_STEPPERS_2
   #endif
   #if DISABLED(ADVANCE) && DISABLED(LIN_ADVANCE)
-    #define _COUNT_STEPPERS_4 INCREMENT(_COUNT_STEPPERS_3)
+    #define _COUNT_STEPPERS_4 (_COUNT_STEPPERS_3 + 1)
   #else
     #define _COUNT_STEPPERS_4 _COUNT_STEPPERS_3
   #endif
@@ -628,13 +720,13 @@ void Stepper::isr() {
       uint32_t pulse_start = HAL_timer_get_current_count(STEPPER_TIMER);
     #endif
 
-    #if HAS(X_STEP)
+    #if HAS_X_STEP
       PULSE_START(X);
     #endif
-    #if HAS(Y_STEP)
+    #if HAS_Y_STEP
       PULSE_START(Y);
     #endif
-    #if HAS(Z_STEP)
+    #if HAS_Z_STEP
       PULSE_START(Z);
     #endif
 
@@ -653,6 +745,34 @@ void Stepper::isr() {
       #else // !COLOR_MIXING_EXTRUDER
         PULSE_START(E);
       #endif
+
+      #if HAS_EXT_ENCODER
+        switch(active_extruder) {
+          case 0:
+            TEST_EXTRUDER_ENC0; break;
+          #if EXTRUDERS > 1
+            case 1:
+              TEST_EXTRUDER_ENC1; break;
+            #if EXTRUDERS > 2
+              case 2:
+                TEST_EXTRUDER_ENC2; break;
+              #if EXTRUDERS > 3
+                case 3:
+                  TEST_EXTRUDER_ENC3; break;
+                #if EXTRUDERS > 4
+                  case 4:
+                    TEST_EXTRUDER_ENC4; break;
+                  #if EXTRUDERS > 5
+                    case 5:
+                      TEST_EXTRUDER_ENC5; break;
+                  #endif // EXTRUDERS > 5
+                #endif // EXTRUDERS > 4
+              #endif // EXTRUDERS > 3
+            #endif // EXTRUDERS > 2
+          #endif // EXTRUDERS > 1
+        }
+      #endif // HAS_EXT_ENCODER
+
     #endif // !ADVANCE && !LIN_ADVANCE
 
     // For a minimum pulse time wait before stopping pulses
@@ -663,13 +783,13 @@ void Stepper::isr() {
       DELAY_NOPS(EXTRA_CYCLES_XYZE);
     #endif
 
-    #if HAS(X_STEP)
+    #if HAS_X_STEP
       PULSE_STOP(X);
     #endif
-    #if HAS(Y_STEP)
+    #if HAS_Y_STEP
       PULSE_STOP(Y);
     #endif
-    #if HAS(Z_STEP)
+    #if HAS_Z_STEP
       PULSE_STOP(Z);
     #endif
 
@@ -700,7 +820,7 @@ void Stepper::isr() {
             laser_pulse(ulValue, current_block->laser_duration);
             laser.time += current_block->laser_duration / 1000; 
           #else
-            laser_fire(current_block->laser_intensity);
+            laser.fire(current_block->laser_intensity);
           #endif
           if (laser.diagnostics) {
             SERIAL_MV("X: ", counter_X);
@@ -719,7 +839,7 @@ void Stepper::isr() {
             #else
               // For some reason, when comparing raster power to ppm line burns the rasters were around 2% more powerful
               // going from darkened paper to burning through paper.
-              laser_fire(current_block->laser_raster_data[counter_raster]); 
+              laser.fire(current_block->laser_raster_data[counter_raster]); 
             #endif
             if (laser.diagnostics) SERIAL_MV("Pixel: ", (float)current_block->laser_raster_data[counter_raster]);
             counter_raster++;
@@ -736,7 +856,7 @@ void Stepper::isr() {
         if (current_block->laser_duration != 0 && (laser.last_firing + current_block->laser_duration < micros())) {
           if (laser.diagnostics)
             SERIAL_EM("Laser firing duration elapsed, in interrupt fast loop");
-          laser_extinguish();
+          laser.extinguish();
         }
       #endif // DISABLED(LASER_PULSE_METHOD)
     #endif // LASER
@@ -919,12 +1039,12 @@ void Stepper::isr() {
 
     #if ENABLED(CPU_32_BIT)
       #if ENABLED(LASER)
-        laser_extinguish();
+        laser.extinguish();
       #endif
     #else
       #if ENABLED(LASER) && ENABLED(LASER_PULSE_METHOD)
         if (current_block->laser_mode == CONTINUOUS && current_block->laser_status == LASER_ON)
-          laser_extinguish();
+          laser.extinguish();
       #endif
     #endif
   }
@@ -1111,65 +1231,65 @@ void Stepper::init() {
   #if HAS_X_DIR
     X_DIR_INIT;
   #endif
-  #if HAS(X2_DIR)
+  #if HAS_X2_DIR
     X2_DIR_INIT;
   #endif
   #if HAS_Y_DIR
     Y_DIR_INIT;
-    #if ENABLED(Y_TWO_STEPPER) && HAS(Y2_DIR)
+    #if ENABLED(Y_TWO_STEPPER) && HAS_Y2_DIR
       Y2_DIR_INIT;
     #endif
   #endif
   #if HAS_Z_DIR
     Z_DIR_INIT;
-    #if ENABLED(Z_TWO_STEPPER) && HAS(Z2_DIR)
+    #if ENABLED(Z_TWO_STEPPER) && HAS_Z2_DIR
       Z2_DIR_INIT;
     #endif
   #endif
-  #if HAS(E0_DIR)
+  #if HAS_E0_DIR
     E0_DIR_INIT;
   #endif
-  #if HAS(E1_DIR)
+  #if HAS_E1_DIR
     E1_DIR_INIT;
   #endif
-  #if HAS(E2_DIR)
+  #if HAS_E2_DIR
     E2_DIR_INIT;
   #endif
-  #if HAS(E3_DIR)
+  #if HAS_E3_DIR
     E3_DIR_INIT;
   #endif
-  #if HAS(E4_DIR)
+  #if HAS_E4_DIR
     E4_DIR_INIT;
   #endif
-  #if HAS(E5_DIR)
+  #if HAS_E5_DIR
     E5_DIR_INIT;
   #endif
 
   //Initialize Enable Pins - steppers default to disabled.
 
-  #if HAS(X_ENABLE)
+  #if HAS_X_ENABLE
     X_ENABLE_INIT;
     if (!X_ENABLE_ON) X_ENABLE_WRITE(HIGH);
-    #if (ENABLED(DUAL_X_CARRIAGE) || ENABLED(X_TWO_STEPPER)) && HAS(X2_ENABLE)
+    #if (ENABLED(DUAL_X_CARRIAGE) || ENABLED(X_TWO_STEPPER)) && HAS_X2_ENABLE
       X2_ENABLE_INIT;
       if (!X_ENABLE_ON) X2_ENABLE_WRITE(HIGH);
     #endif
   #endif
 
-  #if HAS(Y_ENABLE)
+  #if HAS_Y_ENABLE
     Y_ENABLE_INIT;
     if (!Y_ENABLE_ON) Y_ENABLE_WRITE(HIGH);
 
-    #if ENABLED(Y_TWO_STEPPER) && HAS(Y2_ENABLE)
+    #if ENABLED(Y_TWO_STEPPER) && HAS_Y2_ENABLE
       Y2_ENABLE_INIT;
       if (!Y_ENABLE_ON) Y2_ENABLE_WRITE(HIGH);
     #endif
   #endif
 
-  #if HAS(Z_ENABLE)
+  #if HAS_Z_ENABLE
     Z_ENABLE_INIT;
     if (!Z_ENABLE_ON) Z_ENABLE_WRITE(HIGH);
-    #if ENABLED(Z_TWO_STEPPER) && HAS(Z2_ENABLE)
+    #if ENABLED(Z_TWO_STEPPER) && HAS_Z2_ENABLE
       Z2_ENABLE_INIT;
       if (!Z_ENABLE_ON) Z2_ENABLE_WRITE(HIGH);
     #endif
@@ -1234,7 +1354,7 @@ void Stepper::init() {
   #define E_AXIS_INIT(NUM) AXIS_INIT(E## NUM, E)
 
   // Init Step Pins
-  #if HAS(X_STEP)
+  #if HAS_X_STEP
     #if ENABLED(X_TWO_STEPPER) || ENABLED(DUAL_X_CARRIAGE)
       X2_STEP_INIT;
       X2_STEP_WRITE(INVERT_X_STEP_PIN);
@@ -1242,7 +1362,7 @@ void Stepper::init() {
     AXIS_INIT(X, X);
   #endif
 
-  #if HAS(Y_STEP)
+  #if HAS_Y_STEP
     #if ENABLED(Y_TWO_STEPPER) && HAS(Y2_STEP)
       Y2_STEP_INIT;
       Y2_STEP_WRITE(INVERT_Y_STEP_PIN);
@@ -1250,7 +1370,7 @@ void Stepper::init() {
     AXIS_INIT(Y, Y);
   #endif
 
-  #if HAS(Z_STEP)
+  #if HAS_Z_STEP
     #if ENABLED(Z_TWO_STEPPER) && HAS(Z2_STEP)
       Z2_STEP_INIT;
       Z2_STEP_WRITE(INVERT_Z_STEP_PIN);
@@ -1258,24 +1378,42 @@ void Stepper::init() {
     AXIS_INIT(Z, Z);
   #endif
 
-  #if HAS(E0_STEP)
+  #if HAS_E0_STEP
     E_AXIS_INIT(0);
   #endif
-  #if HAS(E1_STEP)
+  #if HAS_E1_STEP
     E_AXIS_INIT(1);
   #endif
-  #if HAS(E2_STEP)
+  #if HAS_E2_STEP
     E_AXIS_INIT(2);
   #endif
-  #if HAS(E3_STEP)
+  #if HAS_E3_STEP
     E_AXIS_INIT(3);
   #endif
-  #if HAS(E4_STEP)
+  #if HAS_E4_STEP
     E_AXIS_INIT(4);
   #endif
-  #if HAS(E5_STEP)
+  #if HAS_E5_STEP
     E_AXIS_INIT(5);
   #endif
+
+  #if HAS_EXT_ENCODER
+    // Initialize enc sensors
+    #if HAS_E0_ENC
+      #if ENABLED(E0_ENC_PULLUP)
+        SET_INPUT_PULLUP(E0_ENC_PIN);
+      #else
+        SET_INPUT(E0_ENC_PIN);
+      #endif
+    #endif
+
+    HAL::delayMilliseconds(1);
+
+    #if HAS_E0_ENC
+      encLastSignal[0] = READ(E0_ENC_PIN);
+    #endif
+
+  #endif // HAS_EXT_ENCODER
 
   // Init Stepper ISR to 122 Hz for quick starting
   HAL_STEPPER_TIMER_START();

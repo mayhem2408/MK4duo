@@ -40,8 +40,8 @@
  * along with Grbl. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef STEPPER_H
-#define STEPPER_H
+#ifndef _STEPPER_H_
+#define _STEPPER_H_
 
 #if ENABLED(ARDUINO_ARCH_AVR)
   #include "speed_lookuptable.h"
@@ -270,7 +270,7 @@ class Stepper {
     // Triggered position of an axis in mm (not core-savvy)
     //
     static FORCE_INLINE float triggered_position_mm(AxisEnum axis) {
-      return endstops_trigsteps[axis] * Mechanics.steps_to_mm[axis];
+      return endstops_trigsteps[axis] * mechanics.steps_to_mm[axis];
     }
 
     #if ENABLED(LIN_ADVANCE)
@@ -393,4 +393,4 @@ class Stepper {
 
 };
 
-#endif // STEPPER_H
+#endif /* _STEPPER_H_ */

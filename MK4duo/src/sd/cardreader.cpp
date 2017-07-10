@@ -42,7 +42,7 @@ CardReader::CardReader() {
     OUT_WRITE(SDPOWER, HIGH);
   #endif // SDPOWER
 
-  next_autostart_ms = millis() + SPLASH_SCREEN_DURATION;
+  next_autostart_ms = millis() + BOOTSCREEN_TIMEOUT;
 }
 
 char* CardReader::createFilename(char* buffer, const dir_t& p) { // buffer > 12characters
@@ -365,23 +365,23 @@ void CardReader::closeFile(const bool store_location /*=false*/) {
     strcat(bufferFilerestart, old_file_name);
 
     strcpy(buffer_G1, "G1 X");
-    dtostrf(Mechanics.current_position[X_AXIS], 1, 3, &buffer_G1[strlen(buffer_G1)]);
+    dtostrf(mechanics.current_position[X_AXIS], 1, 3, &buffer_G1[strlen(buffer_G1)]);
     strcat(buffer_G1, " Y");
-    dtostrf(Mechanics.current_position[Y_AXIS], 1, 3, &buffer_G1[strlen(buffer_G1)]);
+    dtostrf(mechanics.current_position[Y_AXIS], 1, 3, &buffer_G1[strlen(buffer_G1)]);
     strcat(buffer_G1, " Z");
-    dtostrf(Mechanics.current_position[Z_AXIS], 1, 3, &buffer_G1[strlen(buffer_G1)]);
+    dtostrf(mechanics.current_position[Z_AXIS], 1, 3, &buffer_G1[strlen(buffer_G1)]);
     strcat(buffer_G1, " F3600\n");
 
     #if MECH(DELTA)
       strcpy(buffer_G92_Z, "; Nothing for delta\n\n");
     #else
       strcpy(buffer_G92_Z, "G92 Z");
-      dtostrf(Mechanics.current_position[Z_AXIS] + 5 + MIN_Z_HEIGHT_FOR_HOMING, 1, 3, &buffer_G92_Z[strlen(buffer_G92_Z)]);
+      dtostrf(mechanics.current_position[Z_AXIS] + 5 + MIN_Z_HEIGHT_FOR_HOMING, 1, 3, &buffer_G92_Z[strlen(buffer_G92_Z)]);
       strcat(buffer_G92_Z, "\n\n");
     #endif
 
     strcpy(buffer_G92_E, "G92 E");
-    dtostrf(Mechanics.current_position[E_AXIS], 1, 3, &buffer_G92_E[strlen(buffer_G92_E)]);
+    dtostrf(mechanics.current_position[E_AXIS], 1, 3, &buffer_G92_E[strlen(buffer_G92_E)]);
     strcat(buffer_G92_E, "\n");
 
     if (!fileRestart.exists(restart_name_File)) {
@@ -431,7 +431,7 @@ void CardReader::closeFile(const bool store_location /*=false*/) {
     fileRestart.write(buffer_G1);
 
     #if FAN_COUNT > 0
-      FAN_LOOP() {
+      LOOP_FAN() {
         if (fanSpeeds[f] > 0) {
           char fanSp[20];
           sprintf(fanSp, "M106 S%i P%i\n", (int)fanSpeeds[f], (int)f);
@@ -448,14 +448,14 @@ void CardReader::closeFile(const bool store_location /*=false*/) {
     fileRestart.sync();
     fileRestart.close();
 
-    Mechanics.current_position[Z_AXIS] += 5;
-    Mechanics.do_blocking_move_to_z(Mechanics.current_position[Z_AXIS]);
+    mechanics.current_position[Z_AXIS] += 5;
+    mechanics.do_blocking_move_to_z(mechanics.current_position[Z_AXIS]);
 
     thermalManager.disable_all_heaters();
     thermalManager.disable_all_coolers();
     #if FAN_COUNT > 0
       #if FAN_COUNT > 1
-        FAN_LOOP() fanSpeeds[f] = 0;
+        LOOP_FAN() fanSpeeds[f] = 0;
       #else
         fanSpeeds[0] = 0;
       #endif

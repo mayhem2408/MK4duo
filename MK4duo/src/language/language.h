@@ -131,8 +131,8 @@
 #define MSG_DOOR_SENSOR                     "door: "
 #define MSG_POWER_CHECK_SENSOR              "power check: "
 #define MSG_ERR_MATERIAL_INDEX              "M145 S<index> out of range (0-2)"
-#define MSG_ERR_M421_PARAMETERS             "M421 required parameters missing"
-#define MSG_ERR_M321_PARAMETERS             "M321 required parameters missing"
+#define MSG_ERR_M421_PARAMETERS             "M421 incorrect parameter usage"
+#define MSG_ERR_M321_PARAMETERS             "M321 incorrect parameter usage"
 #define MSG_ERR_MESH_XY                     "Mesh point cannot be resolved"
 #define MSG_ERR_ARC_ARGS                    "G2/G3 bad parameters"
 #define MSG_ERR_PROTECTED_PIN               "Protected Pin"
@@ -286,11 +286,10 @@
 #define MSG_DIAM_E5 " 5"
 #define MSG_DIAM_E6 " 6"
 
-#define LANGUAGE_INCL_(M) STRINGIFY_(language_##M.h)
-#define LANGUAGE_INCL(M) LANGUAGE_INCL_(M)
-#define INCLUDE_LANGUAGE LANGUAGE_INCL(LCD_LANGUAGE)
+#define LANGUAGE_INCL(M)        STRINGIFY(language_##M.h)
+#define INCLUDE_BY_LANGUAGE(M)  LANGUAGE_INCL(M)
 
-#include INCLUDE_LANGUAGE
+#include INCLUDE_BY_LANGUAGE(LCD_LANGUAGE)
 
 #if DISABLED(SIMULATE_ROMFONT) \
  && DISABLED(DISPLAY_CHARSET_ISO10646_1) \

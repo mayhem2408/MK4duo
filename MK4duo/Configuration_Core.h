@@ -55,8 +55,8 @@
  * Pins-settings can be found in "Configuration_Pins.h"
  */
 
-#ifndef CONFIGURATION_MECHANISM
-#define CONFIGURATION_MECHANISM
+#ifndef _CONFIGURATION_CORE_H_
+#define _CONFIGURATION_CORE_H_
 
 #define KNOWN_MECH
 
@@ -249,6 +249,14 @@
 // For M666 give a range for adjusting the Z probe offset
 #define Z_PROBE_OFFSET_RANGE_MIN -50
 #define Z_PROBE_OFFSET_RANGE_MAX  50
+
+// Enable if probing seems unreliable. Heaters and/or fans - consistent with the
+// options selected below - will be disabled during probing so as to minimize
+// potential EM interference by quieting/silencing the source of the 'noise' (the change
+// in current flowing through the wires).  This is likely most useful to users of the
+// BLTouch probe, but may also help those with inductive or other probe types.
+//#define PROBING_HEATERS_OFF       // Turn heaters off when probing
+//#define PROBING_FANS_OFF          // Turn fans off when probing
 
 // Use the LCD controller for bed leveling
 // Requires MESH BED LEVELING or PROBE MANUALLY
@@ -629,4 +637,4 @@
 #define HOTEND_OFFSET_Z {0.0, 0.0, 0.0, 0.0} // (in mm) for each hotend, offset of the hotend on the Z axis
 /*****************************************************************************************/
 
-#endif
+#endif /* _CONFIGURATION_CORE_H_ */

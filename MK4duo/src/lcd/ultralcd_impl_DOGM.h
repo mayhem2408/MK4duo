@@ -258,6 +258,55 @@ void lcd_printPGM_utf(const char *str, uint8_t n=LCD_WIDTH) {
   while (n && (c = pgm_read_byte(str))) n -= charset_mapper(c), ++str;
 }
 
+#if ENABLED(SHOW_BOOTSCREEN)
+
+  #if ENABLED(SHOW_CUSTOM_BOOTSCREEN)
+
+    void lcd_custom_bootscreen() {
+      u8g.firstPage();
+      do {
+        u8g.drawBitmapP(
+          (128 - (CUSTOM_BOOTSCREEN_BMPWIDTH))  / 2,
+          ( 64 - (CUSTOM_BOOTSCREEN_BMPHEIGHT)) / 2,
+          CEILING(CUSTOM_BOOTSCREEN_BMPWIDTH, 8), CUSTOM_BOOTSCREEN_BMPHEIGHT, custom_start_bmp);
+      } while (u8g.nextPage());
+    }
+
+  #endif // SHOW_CUSTOM_BOOTSCREEN
+
+  void lcd_bootscreen() {
+
+    static bool show_bootscreen = true;
+
+    if (show_bootscreen) {
+      show_bootscreen = false;
+
+      #if ENABLED(START_BMPHIGH)
+        constexpr uint8_t offy = 0;
+      #else
+        constexpr uint8_t offy = DOG_CHAR_HEIGHT;
+      #endif
+
+      const uint8_t offx = (u8g.getWidth() - (START_BMPWIDTH)) / 2,
+                    txt1X = (u8g.getWidth() - (sizeof(STRING_SPLASH_LINE1) - 1) * (DOG_CHAR_WIDTH)) / 2;
+
+      u8g.firstPage();
+      do {
+        u8g.drawBitmapP(offx, offy, START_BMPBYTEWIDTH, START_BMPHEIGHT, start_bmp);
+        lcd_setFont(FONT_MENU);
+        #if DISABLED(STRING_SPLASH_LINE2)
+          u8g.drawStr(txt1X, u8g.getHeight() - (DOG_CHAR_HEIGHT), STRING_SPLASH_LINE1);
+        #else
+          const uint8_t txt2X = (u8g.getWidth() - (sizeof(STRING_SPLASH_LINE2) - 1) * (DOG_CHAR_WIDTH)) / 2;
+          u8g.drawStr(txt1X, u8g.getHeight() - (DOG_CHAR_HEIGHT) * 3 / 2, STRING_SPLASH_LINE1);
+          u8g.drawStr(txt2X, u8g.getHeight() - (DOG_CHAR_HEIGHT) * 1 / 2, STRING_SPLASH_LINE2);
+        #endif
+      } while (u8g.nextPage());
+    }
+  }
+
+#endif // SHOW_BOOTSCREEN
+
 // Initialize or re-initialize the LCD
 static void lcd_implementation_init() {
 
@@ -286,50 +335,12 @@ static void lcd_implementation_init() {
   #endif
 
   #if ENABLED(SHOW_BOOTSCREEN)
-    static bool show_bootscreen = true;
-
     #if ENABLED(SHOW_CUSTOM_BOOTSCREEN)
-      if (show_bootscreen) {
-        u8g.firstPage();
-        do {
-          u8g.drawBitmapP(
-            (128 - (CUSTOM_BOOTSCREEN_BMPWIDTH))  /2,
-            ( 64 - (CUSTOM_BOOTSCREEN_BMPHEIGHT)) /2,
-            CEILING(CUSTOM_BOOTSCREEN_BMPWIDTH, 8), CUSTOM_BOOTSCREEN_BMPHEIGHT, custom_start_bmp);
-        } while (u8g.nextPage());
-        safe_delay(CUSTOM_BOOTSCREEN_TIMEOUT);
-      }
-    #endif // SHOW_CUSTOM_BOOTSCREEN
-
-    const uint8_t offx = (u8g.getWidth() - (START_BMPWIDTH)) / 2;
-
-    #if ENABLED(START_BMPHIGH)
-      constexpr uint8_t offy = 0;
+      lcd_custom_bootscreen();
     #else
-      constexpr uint8_t offy = DOG_CHAR_HEIGHT;
+      lcd_bootscreen();
     #endif
-
-    const uint8_t txt1X = (u8g.getWidth() - (sizeof(STRING_SPLASH_LINE1) - 1) * (DOG_CHAR_WIDTH)) / 2;
-
-    if (show_bootscreen) {
-      u8g.firstPage();
-      do {
-        u8g.drawBitmapP(offx, offy, START_BMPBYTEWIDTH, START_BMPHEIGHT, start_bmp);
-        lcd_setFont(FONT_MENU);
-        #ifndef STRING_SPLASH_LINE2
-          u8g.drawStr(txt1X, u8g.getHeight() - (DOG_CHAR_HEIGHT), STRING_SPLASH_LINE1);
-        #else
-          const uint8_t txt2X = (u8g.getWidth() - (sizeof(STRING_SPLASH_LINE2) - 1) * (DOG_CHAR_WIDTH)) / 2;
-          u8g.drawStr(txt1X, u8g.getHeight() - (DOG_CHAR_HEIGHT) * 3 / 2, STRING_SPLASH_LINE1);
-          u8g.drawStr(txt2X, u8g.getHeight() - (DOG_CHAR_HEIGHT) * 1 / 2, STRING_SPLASH_LINE2);
-        #endif
-      } while (u8g.nextPage());
-      safe_delay(SPLASH_SCREEN_DURATION);
-    }
-
-    show_bootscreen = false;
-
-  #endif // SHOW_BOOTSCREEN
+  #endif
 }
 
 // The kill screen is displayed for unrecoverable conditions
@@ -358,6 +369,10 @@ FORCE_INLINE void _draw_centered_temp(const int16_t temp, const uint8_t x, const
 
 FORCE_INLINE void _draw_heater_status(const uint8_t x, const int8_t heater, const bool blink) {
 
+  #if !HEATER_IDLE_HANDLER
+    UNUSED(blink);
+  #endif
+
   #if HAS_TEMP_BED
     const bool isBed = heater < 0;
   #else
@@ -365,7 +380,7 @@ FORCE_INLINE void _draw_heater_status(const uint8_t x, const int8_t heater, cons
   #endif
 
   if (PAGE_UNDER(7)) {
-    #if ENABLED(ADVANCED_PAUSE_FEATURE)
+    #if HEATER_IDLE_HANDLER
       const bool is_idle = (!isBed ? thermalManager.is_heater_idle(heater) :
       #if HAS_TEMP_BED
         thermalManager.is_bed_idle()
@@ -399,10 +414,10 @@ FORCE_INLINE void _draw_axis_label(const AxisEnum axis, const char* const pstr, 
   if (blink)
     lcd_printPGM(pstr);
   else {
-    if (!Mechanics.axis_homed[axis])
+    if (!mechanics.axis_homed[axis])
       u8g.print('?');
     else {
-      if (!Mechanics.axis_known_position[axis])
+      if (!mechanics.axis_known_position[axis])
         u8g.print(' ');
       else
         lcd_printPGM(pstr);
@@ -456,7 +471,7 @@ static void lcd_implementation_status_screen() {
 
     if (printer_mode == PRINTER_MODE_LASER) {
       #if ENABLED(LASER_PERIPHERALS)
-        if (laser_peripherals_ok()) {
+        if (laser.peripherals_ok()) {
           u8g.drawBitmapP(29,4, LASERENABLE_BYTEWIDTH, LASERENABLE_HEIGHT, laserenable_bmp);
         }
       #endif
@@ -482,7 +497,7 @@ static void lcd_implementation_status_screen() {
     if (PAGE_UNDER(STATUS_SCREENHEIGHT + 1)) {
 
       u8g.drawBitmapP(9, 1, STATUS_SCREENBYTEWIDTH, STATUS_SCREENHEIGHT,
-        #if HAS(FAN0)
+        #if HAS_FAN0
           blink && fanSpeeds[0] ? status_screen0_bmp : status_screen1_bmp
         #else
           status_screen0_bmp
@@ -499,7 +514,7 @@ static void lcd_implementation_status_screen() {
 
     if (PAGE_UNDER(28)) {
       // Hotends
-      HOTEND_LOOP() _draw_heater_status(5 + h * 25, h, blink);
+      LOOP_HOTEND() _draw_heater_status(5 + h * 25, h, blink);
 
       // Heated bed
       #if HOTENDS < 4 && HAS_TEMP_BED
@@ -576,7 +591,7 @@ static void lcd_implementation_status_screen() {
       uint8_t len1 = elapsed.toDigital(buffer1, false),
               len2 = finished.toDigital(buffer2, false);
 
-      #if HAS(LCD_POWER_SENSOR)
+      #if HAS_LCD_POWER_SENSOR
         if (millis() < print_millis + 1000) {
           u8g.setPrintPos(54, 48);
           lcd_print('S');
@@ -628,7 +643,7 @@ static void lcd_implementation_status_screen() {
   #endif
 
   // Before homing the axis letters are blinking 'X' <-> '?'.
-  // When axis is homed but Mechanics.axis_known_position is false the axis letters are blinking 'X' <-> ' '.
+  // When axis is homed but mechanics.axis_known_position is false the axis letters are blinking 'X' <-> ' '.
   // When everything is ok you see a constant 'X'.
 
   static char xstring[5], ystring[5], zstring[7];
@@ -638,9 +653,9 @@ static void lcd_implementation_status_screen() {
 
   // At the first page, regenerate the XYZ strings
   if (page.page == 0) {
-    strcpy(xstring, ftostr4sign(Mechanics.current_position[X_AXIS]));
-    strcpy(ystring, ftostr4sign(Mechanics.current_position[Y_AXIS]));
-    strcpy(zstring, ftostr52sp(FIXFLOAT(Mechanics.current_position[Z_AXIS])));
+    strcpy(xstring, ftostr4sign(mechanics.current_position[X_AXIS]));
+    strcpy(ystring, ftostr4sign(mechanics.current_position[Y_AXIS]));
+    strcpy(zstring, ftostr52sp(FIXFLOAT(mechanics.current_position[Z_AXIS])));
     #if HAS_LCD_FILAMENT_SENSOR && DISABLED(SDSUPPORT)
       strcpy(wstring, ftostr12ns(filament_width_meas));
       strcpy(mstring, itostr3(100.0 * volumetric_multiplier[FILAMENT_SENSOR_EXTRUDER_NUM]));
@@ -693,7 +708,7 @@ static void lcd_implementation_status_screen() {
 
     lcd_setFont(FONT_STATUSMENU);
     u8g.setPrintPos(12, 50);
-    lcd_print(itostr3(Mechanics.feedrate_percentage));
+    lcd_print(itostr3(mechanics.feedrate_percentage));
     u8g.print('%');
 
     //
@@ -719,7 +734,7 @@ static void lcd_implementation_status_screen() {
 
   #define STATUS_BASELINE (55 + INFO_FONT_HEIGHT)
 
-  if (PAGE_CONTAINS(STATUS_BASELINE + 1 - INFO_FONT_HEIGHT, STATUS_BASELINE)) {
+  if (PAGE_CONTAINS(STATUS_BASELINE - (INFO_FONT_HEIGHT - 1), STATUS_BASELINE)) {
     u8g.setPrintPos(0, STATUS_BASELINE);
 
     #if (HAS_LCD_FILAMENT_SENSOR && ENABLED(SDSUPPORT)) || HAS_LCD_POWER_SENSOR
@@ -742,7 +757,7 @@ static void lcd_implementation_status_screen() {
           }
       #endif
 
-      #if HAS(LCD_FILAMENT_SENSOR) && HAS_SDSUPPORT
+      #if HAS_LCD_FILAMENT_SENSOR && HAS_SDSUPPORT
         else {
           lcd_printPGM(PSTR(LCD_STR_FILAM_DIA));
           u8g.print(':');

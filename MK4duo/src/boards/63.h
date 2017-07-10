@@ -1,19 +1,18 @@
 /****************************************************************************************
-* 6 - 62 - 63 - 64 - 65
-*  6 - Sanguinololu <1.2
-* 62 - Sanguinololu 1.2 and above
 * 63 - Melzi
-* 64 - STB 1.1
-* 65 - Azteeg X1
-* 66 - MELZI 1284
 ****************************************************************************************/
 
+//###CHIP
+#if DISABLED(__AVR_ATmega644P__) && DISABLED(__AVR_ATmega1284P__)
+  #error Oops!  Make sure you have 'Sanguino' or 'Anet' selected from the 'Tools -> Boards' menu.
+#endif
+//@@@
 
 #define KNOWN_BOARD 1
 
 //###BOARD_NAME
-#ifndef BOARD_NAME
-	#define BOARD_NAME "_undefined_"
+#if DISABLED(BOARD_NAME)
+  #define BOARD_NAME "Melzi"
 #endif
 //@@@
 
@@ -154,16 +153,16 @@
 
 //###SERVOS
 #if NUM_SERVOS > 0
-	#define SERVO0_PIN -1
-	#if NUM_SERVOS > 1
-		#define SERVO1_PIN -1
-		#if NUM_SERVOS > 2
-			#define SERVO2_PIN -1
-			#if NUM_SERVOS > 3
-				#define SERVO3_PIN -1
-			#endif
-		#endif
-	#endif
+  #define SERVO0_PIN -1
+  #if NUM_SERVOS > 1
+    #define SERVO1_PIN -1
+    #if NUM_SERVOS > 2
+      #define SERVO2_PIN -1
+      #if NUM_SERVOS > 3
+        #define SERVO3_PIN -1
+      #endif
+    #endif
+  #endif
 #endif
 //@@@
 

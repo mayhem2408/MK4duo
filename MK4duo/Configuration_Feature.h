@@ -65,6 +65,7 @@
  * - XY Frequency limit
  * - Skeinforge arc fix
  * SENSORS FEATURES:
+ * - Extruder Encoder Control
  * - Filament diameter sensor
  * - Filament Runout sensor
  * - Power consumption sensor
@@ -117,8 +118,8 @@
  * 
  */
 
-#ifndef CONFIGURATION_FEATURE_H
-#define CONFIGURATION_FEATURE_H
+#ifndef _CONFIGURATION_FEATURE_H_
+#define _CONFIGURATION_FEATURE_H_
 
 /**************************************************************************
  **************************** Fan configuration ***************************
@@ -139,6 +140,9 @@
 // This defines the minimal speed for the main fan, run in PWM mode
 // to enable uncomment and set minimal PWM speed for reliable running (1-255)
 #define FAN_MIN_PWM 50
+
+// To reverse the logic of fan pins
+//#define INVERTED_FAN_PINS
 
 // This is for controlling a fan to cool down the stepper drivers
 // it will turn on when any driver is enabled
@@ -858,6 +862,32 @@
 //============================= SENSORS FEATURES ============================
 //===========================================================================
 
+
+/**********************************************************************************
+ *************************** Extruder Encoder Control *****************************
+ **********************************************************************************
+ *                                                                                *
+ * Support for Encoder on extruder for control filament movement                  *
+ * EXPERIMENTAL Function                                                          *
+ *                                                                                *
+ * You can compare filament moves with extruder moves to detect if the extruder   *
+ * is jamming, the spool is knotted or if you are running out of filament.        *
+ * You need a movement tracker, that changes a digital signal every x extrusion   *
+ * steps.                                                                         *
+ *                                                                                *
+ * Please define/ Encoder pin for any extruder in configuration pins.              *
+ *                                                                                *
+ **********************************************************************************/
+//#define EXTRUDER_ENCODER_CONTROL
+
+// Enc error step is step for error detect 
+#define ENC_ERROR_STEPS     500
+// Enc min step It must be the minimum number of steps that the extruder does
+// to get a signal from the encoder
+#define ENC_MIN_STEPS        10
+/**********************************************************************************/
+
+
 /**********************************************************************************
  *************************** Filament diameter sensor *****************************
  **********************************************************************************
@@ -1147,7 +1177,7 @@
 //#define SHOW_CUSTOM_BOOTSCREEN
 #define STRING_SPLASH_LINE1 "v" SHORT_BUILD_VERSION       // will be shown during bootup in line 1
 #define STRING_SPLASH_LINE2 STRING_DISTRIBUTION_DATE      // will be shown during bootup in line 2
-#define SPLASH_SCREEN_DURATION 5000                       // SPLASH SCREEN duration in millisecond
+#define BOOTSCREEN_TIMEOUT 2000                           // SPLASH SCREEN duration in millisecond
 
 // LCD TYPE
 //
@@ -1755,11 +1785,15 @@
 // minimum time in microseconds that a movement needs to take if the buffer is emptied.
 #define DEFAULT_MINSEGMENTTIME 20000
 
-// Arc interpretation settings:
-// Disabling this saves ~2738 bytes
+//
+// G2/G3 Arc Support
+//
+// Disable this feature to save ~3226 bytes
 #define ARC_SUPPORT
-#define MM_PER_ARC_SEGMENT 1
-#define N_ARC_CORRECTION 25
+#define MM_PER_ARC_SEGMENT 1    // Length of each arc segment
+#define N_ARC_CORRECTION  25    // Number of intertpolated segments between corrections
+//#define ARC_P_CIRCLES         // Enable the 'P' parameter to specify complete circles
+//#define CNC_WORKSPACE_PLANES  // Allow G2/G3 to operate in XY, ZX, or YZ planes
 
 // Moves with fewer segments than this will be ignored and joined with the next movement
 #define MIN_STEPS_PER_SEGMENT 6
@@ -2038,5 +2072,4 @@
 #define USER_GCODE_5 "G28\nM503"
 /*****************************************************************************************/
 
-
-#endif
+#endif /* _CONFIGURATION_FEATURE_H_ */

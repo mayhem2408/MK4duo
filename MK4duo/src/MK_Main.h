@@ -31,7 +31,7 @@ void idle(
   #endif
 );
 
-void manage_inactivity(bool ignore_stepper_queue = false);
+void manage_inactivity(bool ignore_stepper_queue=false);
 
 void FlushSerialRequestResend();
 void ok_to_send();
@@ -47,8 +47,16 @@ void kill(const char *);
 void Stop();
 void quickstop_stepper();
 
-#if ENABLED(FILAMENT_RUNOUT_SENSOR)
-  void handle_filament_runout();
+extern MK4duoInterruptEvent interruptEvent;
+void setInterruptEvent(const MK4duoInterruptEvent event);
+void handle_Interrupt_Event();
+
+#if HAS_EXT_ENCODER
+  extern int32_t  encStepsSinceLastSignal[EXTRUDERS]; // when was the last signal
+  extern uint8_t  encLastSignal[EXTRUDERS];           // what was the last signal
+  extern int8_t   encLastDir[EXTRUDERS];
+  extern int32_t  encLastChangeAt[EXTRUDERS],
+                  encErrorSteps[EXTRUDERS];
 #endif
 
 extern uint8_t mk_debug_flags;
@@ -69,8 +77,8 @@ extern float  progress;
 // Count of commands in the queue
 extern uint8_t commands_in_queue;
 
-bool enqueue_and_echo_command(const char* cmd, bool say_ok = false);  // Add a single command to the end of the buffer. Return false on failure.
-void enqueue_and_echo_commands_P(const char* cmd);                    // Set one or more commands to be prioritized over the next Serial/SD command.
+bool enqueue_and_echo_command(const char* cmd, bool say_ok=false);  // Add a single command to the end of the buffer. Return false on failure.
+void enqueue_and_echo_commands_P(const char* cmd);                  // Set one or more commands to be prioritized over the next Serial/SD command.
 void clear_command_queue();
 
 void prepare_arc_move(char isclockwise);
@@ -78,19 +86,22 @@ void prepare_arc_move(char isclockwise);
 extern millis_t previous_cmd_ms;
 inline void refresh_cmd_timeout() { previous_cmd_ms = millis(); }
 
+extern void setup_for_endstop_or_probe_move();
+extern void clean_up_after_endstop_or_probe_move();
+
 extern void safe_delay(millis_t ms);
 
 extern bool volumetric_enabled;
-extern int flow_percentage[EXTRUDERS];          // Extrusion factor for each extruder
-extern int density_percentage[EXTRUDERS];       // Extrusion density factor for each extruder
-extern float filament_size[EXTRUDERS];          // cross-sectional area of filament (in millimeters), typically around 1.75 or 2.85, 0 disables the volumetric calculations for the extruder.
-extern float volumetric_multiplier[EXTRUDERS];  // reciprocal of cross-sectional area of filament (in square millimeters), stored this way to reduce computational burden in planner
+extern int16_t  flow_percentage[EXTRUDERS],     // Extrusion factor for each extruder
+                density_percentage[EXTRUDERS];  // Extrusion density factor for each extruder
+extern float  filament_size[EXTRUDERS],         // cross-sectional area of filament (in millimeters), typically around 1.75 or 2.85, 0 disables the volumetric calculations for the extruder.
+              volumetric_multiplier[EXTRUDERS]; // reciprocal of cross-sectional area of filament (in square millimeters), stored this way to reduce computational burden in planner
 
 extern volatile bool wait_for_heatup;
 
 extern const char axis_codes[NUM_AXIS];
 
-#if ENABLED(EMERGENCY_PARSER) || HAS(LCD)
+#if HAS_RESUME_CONTINUE
   extern volatile bool wait_for_user;
 #endif
 
@@ -123,7 +134,12 @@ extern float hotend_offset[XYZ][HOTENDS];
 #endif
 
 #if FAN_COUNT > 0
-  extern int fanSpeeds[FAN_COUNT];
+  extern int16_t fanSpeeds[FAN_COUNT];
+  #if ENABLED(PROBING_FANS_OFF)
+    extern bool fans_paused;
+    extern int16_t paused_fanSpeeds[FAN_COUNT];
+    extern void fans_pause(const bool p);
+  #endif
 #endif
 #if HAS_CONTROLLERFAN
   extern uint8_t controller_fanSpeeds;
@@ -141,12 +157,12 @@ extern float hotend_offset[XYZ][HOTENDS];
 #endif
 
 #if ENABLED(FILAMENT_SENSOR)
-  extern bool filament_sensor;          // Flag that filament sensor readings should control extrusion
-  extern float  filament_width_nominal, // Theoretical filament diameter i.e., 3.00 or 1.75
-                filament_width_meas;    // Measured filament diameter
-  extern int8_t measurement_delay[];    // Ring buffer to delay measurement
-  extern int  filwidth_delay_index[2];  // Ring buffer indexes. Used by planner, temperature, and main code
-  extern int meas_delay_cm;             // Delay distance
+  extern bool     filament_sensor;          // Flag that filament sensor readings should control extrusion
+  extern float    filament_width_nominal,   // Theoretical filament diameter i.e., 3.00 or 1.75
+                  filament_width_meas;      // Measured filament diameter
+  extern uint8_t  meas_delay_cm,            // Delay distance
+                  measurement_delay[];      // Ring buffer to delay measurement
+  extern int8_t   filwidth_delay_index[2];  // Ring buffer indexes. Used by planner, temperature, and main code
 #endif
 
 #if ENABLED(ADVANCED_PAUSE_FEATURE)
@@ -189,6 +205,7 @@ extern PrintCounter print_job_counter;
 // Handling multiple extruders pins
 extern uint8_t  active_extruder,
                 previous_extruder,
+                target_extruder,
                 active_driver;
 
 #if MB(ALLIGATOR) || MB(ALLIGATOR_V3)
@@ -198,18 +215,6 @@ extern uint8_t  active_extruder,
 #if ENABLED(DIGIPOT_I2C)
   extern void digipot_i2c_set_current( int channel, float current );
   extern void digipot_i2c_init();
-#endif
-
-#if HAS(TEMP_0) || HAS_TEMP_BED || ENABLED(HEATER_0_USES_MAX6675)
-  void print_heaterstates();
-#endif
-
-#if HAS_TEMP_CHAMBER
-  void print_chamberstate();
-#endif
-
-#if HAS_TEMP_COOLER
-  void print_coolerstate();
 #endif
 
 #if ENABLED(FLOWMETER_SENSOR)

@@ -6,13 +6,14 @@
 //###CHIP
 #if DISABLED(__AVR_ATmega644__) && DISABLED(__AVR_ATmega644P__) && DISABLED(__AVR_ATmega1284P__)
   #error Oops!  Make sure you have 'Gen7' selected from the 'Tools -> Boards' menu.
-#endif//@@@
+#endif
+//@@@
 
 #define KNOWN_BOARD 1
 
 //###BOARD_NAME
-#ifndef BOARD_NAME
-	#define BOARD_NAME "Gen7"
+#if DISABLED(BOARD_NAME)
+  #define BOARD_NAME "Gen7 v1.1"
 #endif
 //@@@
 
@@ -153,16 +154,16 @@
 
 //###SERVOS
 #if NUM_SERVOS > 0
-	#define SERVO0_PIN -1
-	#if NUM_SERVOS > 1
-		#define SERVO1_PIN -1
-		#if NUM_SERVOS > 2
-			#define SERVO2_PIN -1
-			#if NUM_SERVOS > 3
-				#define SERVO3_PIN -1
-			#endif
-		#endif
-	#endif
+  #define SERVO0_PIN -1
+  #if NUM_SERVOS > 1
+    #define SERVO1_PIN -1
+    #if NUM_SERVOS > 2
+      #define SERVO2_PIN -1
+      #if NUM_SERVOS > 3
+        #define SERVO3_PIN -1
+      #endif
+    #endif
+  #endif
 #endif
 //@@@
 

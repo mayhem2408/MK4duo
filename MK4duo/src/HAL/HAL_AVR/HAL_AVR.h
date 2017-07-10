@@ -56,20 +56,30 @@
 // --------------------------------------------------------------------------
 // Includes
 // --------------------------------------------------------------------------
-
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
-
 #include <util/delay.h>
 #include <avr/pgmspace.h>
 #include <avr/io.h>
 #include <avr/eeprom.h>
 #include <avr/interrupt.h>
 
+
+// --------------------------------------------------------------------------
+// Types
+// --------------------------------------------------------------------------
+typedef uint16_t  HAL_TIMER_TYPE;
+typedef uint32_t  millis_t;
+typedef int8_t    Pin;
+
+
+// --------------------------------------------------------------------------
+// Includes
+// --------------------------------------------------------------------------
 #include "fastio.h"
 #include "watchdog_AVR.h"
 
@@ -219,14 +229,6 @@
 #define ANALOG_REF ANALOG_REF_AVCC
 #define ANALOG_PRESCALER _BV(ADPS0)|_BV(ADPS1)|_BV(ADPS2)
 #define OVERSAMPLENR 5
-
-// --------------------------------------------------------------------------
-// Types
-// --------------------------------------------------------------------------
-
-typedef uint16_t  HAL_TIMER_TYPE;
-typedef uint32_t  millis_t;
-typedef uint8_t   Pin;
 
 // --------------------------------------------------------------------------
 // Timer
@@ -452,27 +454,30 @@ class HAL {
       while (!(SPSR & (1 << SPIF))) {}
     }
 
-    static inline void digitalWrite(uint8_t pin,uint8_t value) {
+    static inline void analogWrite(const Pin pin, const uint8_t value) {
+      ::analogWrite(pin, value);
+    }
+    static inline void digitalWrite(const Pin pin, const uint8_t value) {
       ::digitalWrite(pin, value);
     }
-    static inline uint8_t digitalRead(uint8_t pin) {
+    static inline uint8_t digitalRead(const Pin pin) {
       return ::digitalRead(pin);
     }
-    static inline void pinMode(uint8_t pin,uint8_t mode) {
+    static inline void pinMode(const Pin pin, const uint8_t mode) {
       ::pinMode(pin, mode);
     }
 
-    static inline void delayMicroseconds(unsigned int delayUs) {
+    static inline void delayMicroseconds(const uint16_t delayUs) {
       ::delayMicroseconds(delayUs);
     }
-    static inline void delayMilliseconds(unsigned int delayMs) {
+    static inline void delayMilliseconds(const uint16_t delayMs) {
       ::delay(delayMs);
     }
-    static inline unsigned long timeInMilliseconds() {
+    static inline uint32_t timeInMilliseconds() {
       return millis();
     }
 
-    static inline void serialSetBaudrate(long baud) {
+    static inline void serialSetBaudrate(const uint16_t baud) {
       MKSERIAL.begin(baud);
     }
     static inline bool serialByteAvailable() {
@@ -481,7 +486,7 @@ class HAL {
     static inline uint8_t serialReadByte() {
       return MKSERIAL.read();
     }
-    static inline void serialWriteByte(char b) {
+    static inline void serialWriteByte(const char b) {
       MKSERIAL.write(b);
     }
     static inline void serialFlush() {
@@ -505,13 +510,17 @@ class HAL {
 #undef FLOOR
 #undef LROUND
 #undef FMOD
+#undef COS
+#undef SIN
 #define ATAN2(y, x) atan2(y, x)
-#define FABS(x) fabs(x)
-#define POW(x, y) pow(x, y)
-#define SQRT(x) sqrt(x)
-#define CEIL(x) ceil(x)
-#define FLOOR(x) floor(x)
-#define LROUND(x) lround(x)
-#define FMOD(x, y) fmod(x, y)
+#define FABS(x)     fabs(x)
+#define POW(x, y)   pow(x, y)
+#define SQRT(x)     sqrt(x)
+#define CEIL(x)     ceil(x)
+#define FLOOR(x)    floor(x)
+#define LROUND(x)   lround(x)
+#define FMOD(x, y)  fmod(x, y)
+#define COS(x)      cos(x)
+#define SIN(x)      sin(x)
 
 #endif // HAL_AVR_H

@@ -1,5 +1,11 @@
+### Version 4.3.24 dev
+* Add Extruder Encoder for control filament movement (Experimental)
+* Now all types of delta autocalibration can be done with probe_manually and lcd
+* Fix and clear code
+
 ### Version 4.3.23 dev
 * Create class bedlevel and probe
+* G30 now have Z e P sub command. Z1 modify Delta Height and P1 modify Probe Z offset.
 * Fix EEPROM_SD
 * Fix and clear code
 * Add Laser PWM Invert invert and HIGH to Fire

@@ -7,13 +7,14 @@
 //###CHIP
 #if DISABLED(__AVR_ATmega1280__) && DISABLED(__AVR_ATmega2560__)
   #error Oops!  Make sure you have 'Arduino Mega' selected from the 'Tools -> Boards' menu.
-#endif//@@@
+#endif
+//@@@
 
 #define KNOWN_BOARD 1
 
 //###BOARD_NAME
-#ifndef BOARD_NAME
-	#define BOARD_NAME "RAMPS 1.4"
+#if DISABLED(BOARD_NAME)
+  #define BOARD_NAME "Ramps HHF"
 #endif
 //@@@
 
@@ -154,16 +155,16 @@
 
 //###SERVOS
 #if NUM_SERVOS > 0
-	#define SERVO0_PIN 11
-	#if NUM_SERVOS > 1
-		#define SERVO1_PIN 6
-		#if NUM_SERVOS > 2
-			#define SERVO2_PIN 5
-			#if NUM_SERVOS > 3
-				#define SERVO3_PIN 4
-			#endif
-		#endif
-	#endif
+  #define SERVO0_PIN 11
+  #if NUM_SERVOS > 1
+    #define SERVO1_PIN 6
+    #if NUM_SERVOS > 2
+      #define SERVO2_PIN 5
+      #if NUM_SERVOS > 3
+        #define SERVO3_PIN 4
+      #endif
+    #endif
+  #endif
 #endif
 //@@@
 

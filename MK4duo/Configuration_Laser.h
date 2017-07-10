@@ -27,8 +27,8 @@
  *
  */
 
-#ifndef CONFIGURATION_LASER
-#define CONFIGURATION_LASER
+#ifndef _CONFIGURATION_LASER_H_
+#define _CONFIGURATION_LASER_H_
 
 //===========================================================================
 //============================= Laser Settings ==============================
@@ -49,6 +49,10 @@
 // comment this line if your do not want to remap the intensity. Saves 154 bytes and a few CPU cycles
 //#define LASER_REMAP_INTENSITY 7
 
+// Normally the intensity is a value between 0 and 100 percent.
+// If you want a value in bytes (0 to 255), activate the following function.
+//#define INTENSITY_IN_BYTE
+
 // Uncomment the following if your laser firing pin (not the PWM pin) for two pin control requires a HIGH signal to fire rather than a low (eg Red Sail M300 RS 3040)
 #define HIGH_TO_FIRE
 
@@ -56,9 +60,9 @@
 #define LASER_PWM_INVERT
 
 // The following defines select which G codes tell the laser to fire. It's OK to uncomment more than one.
-#define LASER_FIRE_G1 10      // fire the laser on a G1 move, extinguish when the move ends
-#define LASER_FIRE_SPINDLE 11 // fire the laser on M3, extinguish on M5
-#define LASER_FIRE_E 12       // fire the laser when the E axis moves
+#define LASER_FIRE_SPINDLE    // fire the laser on M3, extinguish on M5
+#define LASER_FIRE_G1       // fire the laser on a G1 move, extinguish when the move ends
+//#define LASER_FIRE_E        // fire the laser when the E axis moves
 
 // Raster mode enables the laser to etch bitmap data at high speeds. Increases command buffer size substantially.
 #define LASER_RASTER
@@ -115,7 +119,7 @@
 //  Maximum start speed for accelerated moves.    X,    Y,  Z,   E0...(per extruder)
 //#ifdef DEFAULT_MAX_ACCELERATION
 //  #undef DEFAULT_MAX_ACCELERATION
-//  #define DEFAULT_MAX_ACCELERATION              {5000, 5000, 50, 1000, 1000, 1000, 1000}
+//  #define DEFAULT_MAX_ACCELERATION              {5000, 5000, 500, 1000, 1000, 1000, 1000}
 //#endif
 //  X, Y, Z and E* maximum acceleration in mm/s^2 for printing moves
 //#ifdef DEFAULT_ACCELERATION
@@ -125,7 +129,7 @@
 //  X, Y, Z acceleration in mm/s^2 for travel (non printing) moves
 //#ifdef DEFAULT_TRAVEL_ACCELERATION
 //  #undef DEFAULT_TRAVEL_ACCELERATION
-//  #define DEFAULT_TRAVEL_ACCELERATION   20000
+//  #define DEFAULT_TRAVEL_ACCELERATION   30000
 //#endif
 //#ifdef X_MAX_POS
 //  #undef X_MAX_POS
@@ -272,4 +276,4 @@
 //#endif
 
 
-#endif
+#endif /* _CONFIGURATION_LASER_H_ */

@@ -6,13 +6,14 @@
 //###CHIP
 #if DISABLED(__AVR_ATmega2560__)
   #error Oops!  Make sure you have 'Arduino Mega 2560' selected from the 'Tools -> Boards' menu.
-#endif//@@@
+#endif
+//@@@
 
 #define KNOWN_BOARD 1
 
 //###BOARD_NAME
-#ifndef BOARD_NAME
-	#define BOARD_NAME "MegaTronics V3.0"
+#if DISABLED(BOARD_NAME)
+  #define BOARD_NAME "Megatronics V3.0"
 #endif
 //@@@
 
@@ -153,16 +154,16 @@
 
 //###SERVOS
 #if NUM_SERVOS > 0
-	#define SERVO0_PIN 46
-	#if NUM_SERVOS > 1
-		#define SERVO1_PIN 47
-		#if NUM_SERVOS > 2
-			#define SERVO2_PIN 48
-			#if NUM_SERVOS > 3
-				#define SERVO3_PIN 49
-			#endif
-		#endif
-	#endif
+  #define SERVO0_PIN 46
+  #if NUM_SERVOS > 1
+    #define SERVO1_PIN 47
+    #if NUM_SERVOS > 2
+      #define SERVO2_PIN 48
+      #if NUM_SERVOS > 3
+        #define SERVO3_PIN 49
+      #endif
+    #endif
+  #endif
 #endif
 //@@@
 

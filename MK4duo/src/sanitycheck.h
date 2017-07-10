@@ -506,10 +506,6 @@
     #endif
   #endif
 
-  #if ENABLED(ENABLE_LEVELING_FADE_HEIGHT) && DISABLED(AUTO_BED_LEVELING_FEATURE)
-    #error "ENABLE_LEVELING_FADE_HEIGHT on DELTA requires AUTO_BED_LEVELING_FEATURE."
-  #endif
-
   static_assert(1 >= 0
     #if ENABLED(DELTA_AUTO_CALIBRATION_1)
       +1
@@ -642,16 +638,22 @@ static_assert(1 >= 0
   /**
    * Require some kind of probe for bed leveling and probe testing
    */
-  #if HAS_ABL || ENABLED(DELTA_AUTO_CALIBRATION_1)
-    #error "Auto Bed Leveling or Auto Calibration requires a probe! Define a PROBE_MANUALLY, Z Servo, BLTOUCH, Z_PROBE_ALLEN_KEY, Z_PROBE_SLED, or Z_PROBE_FIX_MOUNTED."
-  #elif ENABLED(Z_MIN_PROBE_REPEATABILITY_TEST)
-    #error "Z_MIN_PROBE_REPEATABILITY_TEST requires a probe! Define a Z PROBE_MANUALLY, Servo, BLTOUCH, Z_PROBE_ALLEN_KEY, Z_PROBE_SLED, or Z_PROBE_FIX_MOUNTED."
+  #if HAS_ABL
+    #error "Auto Bed Leveling requires a probe! Define a PROBE_MANUALLY, Z Servo, BLTOUCH, Z_PROBE_ALLEN_KEY, Z_PROBE_SLED, or Z_PROBE_FIX_MOUNTED."
+  #elif ENABLED(DELTA_AUTO_CALIBRATION_1)
+    #error "DELTA_AUTO_CALIBRATION_1 requires a probe! Define a Z PROBE_MANUALLY, Servo, BLTOUCH, Z_PROBE_ALLEN_KEY, Z_PROBE_SLED, or Z_PROBE_FIX_MOUNTED."
+  #elif ENABLED(DELTA_AUTO_CALIBRATION_2)
+    #error "DELTA_AUTO_CALIBRATION_2 requires a probe! Define a Z PROBE_MANUALLY, Servo, BLTOUCH, Z_PROBE_ALLEN_KEY, Z_PROBE_SLED, or Z_PROBE_FIX_MOUNTED."
   #endif
 
 #endif
 
-#if HASNT(BED_PROBE) && (ENABLED(DELTA_AUTO_CALIBRATION_2) || ENABLED(DELTA_AUTO_CALIBRATION_3))
-  #error "Auto Calibration requires a probe! Define a Z Servo, BLTOUCH, Z_PROBE_ALLEN_KEY, Z_PROBE_SLED, or Z_PROBE_FIX_MOUNTED."
+#if !HAS_BED_PROBE || ENABLED(PROBE_MANUALLY)
+  #if ENABLED(DELTA_AUTO_CALIBRATION_3)
+    #error "DELTA_AUTO_CALIBRATION_3 requires a probe! Define a Z Servo, BLTOUCH, Z_PROBE_ALLEN_KEY, Z_PROBE_SLED, or Z_PROBE_FIX_MOUNTED."
+  #elif ENABLED(Z_MIN_PROBE_REPEATABILITY_TEST)
+    #error "Z_MIN_PROBE_REPEATABILITY_TEST requires a probe! Define a Z Servo, BLTOUCH, Z_PROBE_ALLEN_KEY, Z_PROBE_SLED, or Z_PROBE_FIX_MOUNTED."
+  #endif
 #endif
 
 /**
@@ -684,17 +686,6 @@ static_assert(1 >= 0
  * Auto Bed Leveling
  */
 #if HAS_ABL
-
-  /**
-   * Delta and SCARA have limited bed leveling options
-   */
-  #if DISABLED(AUTO_BED_LEVELING_BILINEAR)
-    #if MECH(DELTA)
-      #error "Only AUTO_BED_LEVELING_BILINEAR is supported for DELTA bed leveling."
-    #elif IS_SCARA
-      #error "Only AUTO_BED_LEVELING_BILINEAR is supported for SCARA bed leveling."
-    #endif
-  #endif
 
   /**
    * Check auto bed leveling sub-options, especially probe points
@@ -742,13 +733,20 @@ static_assert(1 >= 0
 #endif // HAS_ABL
 
 /**
+ * ENABLE_LEVELING_FADE_HEIGHT requirements
+ */
+#if ENABLED(ENABLE_LEVELING_FADE_HEIGHT) && !HAS_LEVELING
+  #error "ENABLE_LEVELING_FADE_HEIGHT requires Bed Level"
+#endif
+
+/**
  * LCD_BED_LEVELING requirements
  */
 #if ENABLED(LCD_BED_LEVELING)
   #if !HAS_LCD
     #error "LCD_BED_LEVELING requires an LCD controller."
   #elif DISABLED(MESH_BED_LEVELING) && !(HAS_ABL && ENABLED(PROBE_MANUALLY))
-    #error "LCD_BED_LEVELING requires MESH_BED_LEVELING or PROBE_MANUALLY."
+    #error "LCD_BED_LEVELING requires MESH_BED_LEVELING or ABL and PROBE_MANUALLY."
   #endif
 #endif
 
@@ -919,8 +917,8 @@ static_assert(1 >= 0
   #if DISABLED(STRING_SPLASH_LINE1)
     #error DEPENDENCY ERROR: Missing setting STRING_SPLASH_LINE1
   #endif
-  #if DISABLED(SPLASH_SCREEN_DURATION)
-    #error DEPENDENCY ERROR: Missing setting SPLASH_SCREEN_DURATION
+  #if DISABLED(BOOTSCREEN_TIMEOUT)
+    #error DEPENDENCY ERROR: Missing setting BOOTSCREEN_TIMEOUT
   #endif
 #endif
 #if ENABLED(ULTIPANEL)
@@ -1663,7 +1661,7 @@ static_assert(1 >= 0
 /**
  * Servo deactivation depends on servo endstops
  */
-#if ENABLED(DEACTIVATE_SERVOS_AFTER_MOVE) && HASNT(Z_SERVO_ENDSTOP)
+#if ENABLED(DEACTIVATE_SERVOS_AFTER_MOVE) && !HAS_Z_SERVO_PROBE
   #error DEPENDENCY ERROR: At least one of the Z_ENDSTOP_SERVO_NR is required for DEACTIVATE_SERVOS_AFTER_MOVE.
 #endif
 
@@ -1976,7 +1974,15 @@ static_assert(1 >= 0
   #error DEPENDENCY ERROR: You must set EXTRUDERS = 2 for DONDOLO
 #endif
 
-#if ENABLED(LASER) 
+#if ENABLED(LASER)
+  #if ENABLED(LASER_PERIPHERALS)
+    #if !PIN_EXISTS(LASER_PERIPHERALS)
+      #error DEPENDENCY ERROR: You have to set LASER_PERIPHERALS_PIN to a valid pin if you enable LASER_PERIPHERALS
+    #endif
+    #if !PIN_EXISTS(LASER_PERIPHERALS_STATUS)
+      #error DEPENDENCY ERROR: You have to set LASER_PERIPHERALS_STATUS_PIN to a valid pin if you enable LASER_PERIPHERALS
+    #endif
+  #endif
   #if (DISABLED(LASER_CONTROL) || ((LASER_CONTROL != 1) && (LASER_CONTROL != 2)))
      #error DEPENDENCY ERROR: You have to set LASER_CONTROL to 1 or 2
   #else
@@ -1990,7 +1996,7 @@ static_assert(1 >= 0
       #endif
     #endif
   #endif
-#endif
+#endif // ENABLED(LASER)
 
 #if ENABLED(FILAMENT_RUNOUT_SENSOR) && !PIN_EXISTS(FIL_RUNOUT)
   #error DEPENDENCY ERROR: You have to set FIL_RUNOUT_PIN to a valid pin if you enable FILAMENT_RUNOUT_SENSOR
